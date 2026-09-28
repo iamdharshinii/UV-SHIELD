@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>UVShield — Ozone &amp; UV Protection Dashboard</title>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     LOCATION PERMISSION SCREEN
+     Shown first. User must allow location or enter one manually
+     before the dashboard appears.
+============================================================ -->
+<div id="permission-overlay" class="overlay">
+  <div class="overlay-glow"></div>
+  <div class="overlay-card glass">
+    <div class="overlay-icon" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="10" fill="#FDB44B"/><g stroke="#FDB44B" stroke-width="2.4" stroke-linecap="round"><line x1="24" y1="3" x2="24" y2="10"/><line x1="24" y1="38" x2="24" y2="45"/><line x1="3" y1="24" x2="10" y2="24"/><line x1="38" y1="24" x2="45" y2="24"/><line x1="8.5" y1="8.5" x2="13.6" y2="13.6"/><line x1="34.4" y1="34.4" x2="39.5" y2="39.5"/><line x1="8.5" y1="39.5" x2="13.6" y2="34.4"/><line x1="34.4" y1="13.6" x2="39.5" y2="8.5"/></g></svg>
+    </div>
+    <h1>📍 Allow UVShield to access your location?</h1>
+    <p>Your location is used to provide location-based weather and UV information.</p>
+    <button id="btn-allow-location" class="btn btn-primary">Allow Location Access</button>
+    <button id="btn-manual-location" class="btn btn-ghost">Enter Location Manually</button>
+    <p id="permission-status" class="permission-status hidden"></p>
+  </div>
+</div>
+
+<!-- ============================================================
+     MANUAL LOCATION SCREEN
+     Fallback if geolocation is denied or unavailable.
+============================================================ -->
+<div id="manual-overlay" class="overlay hidden">
+  <div class="overlay-glow"></div>
+  <div class="overlay-card glass">
+    <h1>Enter your location</h1>
+    <p>Search for a city or place to get UV and weather information for that location.</p>
+    <input id="manual-input" type="text" placeholder="e.g. Chennai, Tamil Nadu" autocomplete="off">
+    <div id="manual-error" class="field-error hidden"></div>
+    <button id="btn-manual-submit" class="btn btn-primary">Get UV Information</button>
+    <button id="btn-back-to-allow" class="btn btn-ghost">Back</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP SHELL
+============================================================ -->
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="24" height="24"><path d="M16 3c6 4 9 8 9 13a9 9 0 0 1-18 0c0-5 3-9 9-13z" fill="#fff"/></svg>
+      </span>
+      <div class="brand-text">
+        <span class="brand-name">UVShield</span>
+        <span class="brand-sub">Ozone &amp; UV Protection Dashboard</span>
+      </div>
+    </div>
+    <button id="btn-refresh" class="icon-btn" aria-label="Refresh data">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg>
+    </button>
+  </header>
+
+  <div id="status-banner" class="status-banner hidden" role="status"></div>
+
+  <main class="views">
+
+    <!-- ===================== HOME VIEW ===================== -->
+    <section id="view-home" class="view">
+
+      <!-- Current Location -->
+      <div class="location-card glass">
+        <div class="location-top">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          <span class="location-label">Current Location</span>
+        </div>
+        <div id="location-name" class="location-name">Locating you…</div>
+        <div id="location-coords" class="location-coords">Latitude: — &nbsp;·&nbsp; Longitude: —</div>
+      </div>
+
+      <!-- UV Index Hero -->
+      <div class="uv-hero glass" id="uv-hero">
+        <div class="uv-hero-top">
+          <span class="uv-hero-label">☀️ UV Index</span>
+          <span id="uv-updated" class="uv-hero-updated">—</span>
+        </div>
+        <div class="uv-hero-main">
+          <span id="uv-number" class="uv-number">--</span>
+          <div class="uv-arc-wrap" aria-hidden="true">
+            <svg viewBox="0 0 120 68" class="uv-arc">
+              <path d="M8 60 A52 52 0 0 1 112 60" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="10" stroke-linecap="round"/>
+              <path id="uv-arc-fill" d="M8 60 A52 52 0 0 1 112 60" fill="none" stroke="#FDB44B" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 300"/>
+            </svg>
+          </div>
+        </div>
+        <div class="uv-hero-bottom">
+          <span id="uv-risk-pill" class="risk-pill">—</span>
+        </div>
+        <div class="uv-protection-row">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+          <span id="uv-protection">Protection: —</span>
+        </div>
+      </div>
+
+      <!-- Weather -->
+      <div class="section-label">🌡️ Live weather</div>
+      <div class="weather-grid">
+        <div class="weather-card glass">
+          <span class="weather-emoji">🌡️</span>
+          <span id="w-temp" class="weather-val">--°</span>
+          <span class="weather-key">Temperature</span>
+        </div>
+        <div class="weather-card glass">
+          <span class="weather-emoji">☀️</span>
+          <span id="w-condition" class="weather-val">—</span>
+          <span class="weather-key">Condition</span>
+        </div>
+        <div class="weather-card glass">
+          <span class="weather-emoji">💧</span>
+          <span id="w-humidity" class="weather-val">--%</span>
+          <span class="weather-key">Humidity</span>
+        </div>
+        <div class="weather-card glass">
+          <span class="weather-emoji">💨</span>
+          <span id="w-wind" class="weather-val">-- km/h</span>
+          <span class="weather-key">Wind speed</span>
+        </div>
+        <div class="weather-card glass weather-card-wide">
+          <span class="weather-emoji">☁️</span>
+          <span id="w-cloud" class="weather-val">--%</span>
+          <span class="weather-key">Cloud cover</span>
+        </div>
+      </div>
+
+      <!-- Which UV affects me -->
+      <div class="section-label">☀️ Which UV affects you?</div>
+      <div class="card glass surface-uv-card">
+        <div class="surface-uv-badge">Mainly UV-A + UV-B</div>
+        <p class="surface-uv-text">The UV Index reflects the sunburn-producing UV reaching the surface here — mostly UV-B, with a UV-A contribution. It is not a direct reading of one UV type alone.</p>
+      </div>
+
+      <!-- UV Assistant teaser -->
+      <div class="section-label">🎤 UV Assistant</div>
+      <div class="map-teaser card glass" id="link-assistant-teaser">
+        <div class="map-teaser-preview" aria-hidden="true">🎤</div>
+        <div class="map-teaser-text">
+          <strong>Ask UVShield a question</strong>
+          <span>About your current UV, ozone, or safety</span>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+
+      <!-- UV Timeline -->
+      <div class="section-label">⏰ UV timeline</div>
+      <div class="card glass timeline-card">
+        <div id="uv-timeline" class="uv-timeline"></div>
+        <div id="peak-uv-note" class="peak-note">☀️ Peak UV period — UV exposure is generally highest around the middle of the day.</div>
+      </div>
+
+      <!-- Safety preview -->
+      <div class="section-label">🛡️ How to protect yourself</div>
+      <div id="safety-grid-home" class="safety-grid"></div>
+
+      <!-- Ozone teaser -->
+      <div class="section-label">🧪 Ozone &amp; UV</div>
+      <div class="ozone-teaser card glass" id="link-ozone-teaser">
+        <div class="ozone-teaser-text">
+          <strong>How does the ozone layer protect us?</strong>
+          <span>See the Sun → Ozone → Surface pathway</span>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+
+    </section>
+
+    <!-- ===================== UV ASSISTANT VIEW ===================== -->
+    <section id="view-assistant" class="view hidden">
+      <h2 class="view-title">🎤 UV Assistant</h2>
+      <p class="view-sub">Ask about your current UV, weather, ozone, or safety. This is a UVShield-specific assistant, not a general voice assistant — it answers using your live dashboard data.</p>
+
+      <!-- Chat-style transcript -->
+      <div id="assistant-transcript" class="assistant-transcript glass">
+        <div class="assistant-empty">Ask me anything about your current UV, weather, ozone, or how to protect yourself — try the tap-to-ask suggestions below, or use the mic.</div>
+      </div>
+
+      <!-- Listening state indicator -->
+      <div id="assistant-listening" class="assistant-listening hidden">
+        <span class="pulse-dot"></span> Listening…
+      </div>
+
+      <!-- Input row: mic button + typed fallback -->
+      <div class="assistant-input-row">
+        <button id="btn-mic" class="mic-btn" aria-label="Ask by voice">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+        </button>
+        <input id="assistant-text-input" type="text" placeholder="Type a question — e.g. What is the UV Index here?" autocomplete="off">
+        <button id="btn-assistant-send" class="assistant-send-btn" aria-label="Send">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div id="assistant-mic-note" class="assistant-mic-note hidden"></div>
+
+      <!-- Suggested questions -->
+      <div class="section-label">Try asking</div>
+      <div class="suggested-chips">
+        <button class="chip" data-q="What is the UV Index here?">What is the UV Index here?</button>
+        <button class="chip" data-q="Is it safe to go outside?">Is it safe to go outside?</button>
+        <button class="chip" data-q="What protection should I take?">What protection should I take?</button>
+        <button class="chip" data-q="What is UV-B?">What is UV-B?</button>
+        <button class="chip" data-q="Why is ozone important?">Why is ozone important?</button>
+        <button class="chip" data-q="What is the weather like?">What is the weather like?</button>
+      </div>
+    </section>
+
+    <!-- ===================== UV INFO VIEW ===================== -->
+    <section id="view-uvinfo" class="view hidden">
+      <h2 class="view-title">☀️ Which UV affects you?</h2>
+      <p class="view-sub">The UV Index measures the sunburn-producing UV radiation reaching the surface — it is not a direct reading of one UV type alone.</p>
+
+      <div class="uv-type-card uv-type-a glass">
+        <div class="uv-type-head"><span class="uv-type-dot"></span><span>UV-A</span></div>
+        <ul>
+          <li>Longer wavelength</li>
+          <li>Reaches Earth's surface in large amounts</li>
+          <li>Contributes to skin and eye exposure</li>
+          <li>Associated with premature skin ageing</li>
+        </ul>
+      </div>
+
+      <div class="uv-type-card uv-type-b glass">
+        <div class="uv-type-head"><span class="uv-type-dot"></span><span>UV-B</span></div>
+        <ul>
+          <li>More strongly affected by the ozone layer</li>
+          <li>Major contributor to sunburn</li>
+          <li>Can damage skin and eyes</li>
+        </ul>
+      </div>
+
+      <div class="uv-type-card uv-type-c glass">
+        <div class="uv-type-head"><span class="uv-type-dot"></span><span>UV-C</span></div>
+        <ul>
+          <li>Very harmful</li>
+          <li>Natural solar UV-C is essentially absorbed by the atmosphere</li>
+          <li>Normally does not reach Earth's surface</li>
+        </ul>
+      </div>
+
+      <div class="info-note glass">
+        This dashboard does not measure separate UV-A, UV-B or UV-C values — no spectral sensor is connected. The UV Index shown reflects total sunburn-weighted UV reaching the ground, mainly UV-B with some UV-A contribution.
+      </div>
+    </section>
+
+    <!-- ===================== OZONE VIEW ===================== -->
+    <section id="view-ozone" class="view hidden">
+      <h2 class="view-title">🧪 Ozone &amp; UV</h2>
+
+      <div class="ozone-pathway glass">
+        <div class="pathway-step">☀️ <span>Sun</span></div>
+        <div class="pathway-arrow">↓</div>
+        <div class="pathway-step">🌤️ <span>UV Radiation</span></div>
+        <div class="pathway-arrow">↓</div>
+        <div class="pathway-step">🛡️ <span>Ozone Layer</span></div>
+        <div class="pathway-arrow">↓</div>
+        <div class="pathway-step">🌍 <span>Absorption of harmful UV</span></div>
+        <div class="pathway-arrow">↓</div>
+        <div class="pathway-step">🌎 <span>Earth's Surface</span></div>
+      </div>
+
+      <div class="ozone-block glass">
+        <p>The ozone layer absorbs much of the Sun's harmful ultraviolet radiation, especially UV-B, and essentially all solar UV-C, before it reaches Earth's surface.</p>
+      </div>
+
+      <div class="section-label">Why ozone protection matters</div>
+      <div class="ozone-why-grid">
+        <div class="ozone-why-card glass"><span>🧑‍⚕️</span><strong>Human health</strong></div>
+        <div class="ozone-why-card glass"><span>🧴</span><strong>Skin protection</strong></div>
+        <div class="ozone-why-card glass"><span>👁️</span><strong>Eye protection</strong></div>
+        <div class="ozone-why-card glass"><span>🌿</span><strong>Environmental protection</strong></div>
+      </div>
+
+      <div class="info-note info-note-muted glass">
+        Live satellite ozone-column data is not connected in this prototype — figures shown here are educational, not invented ozone measurements.
+      </div>
+
+      <div class="section-label">Project goal</div>
+      <div class="card glass about-card">
+        <p>To provide location-based UV risk information and safety guidance, helping people reduce harmful UV exposure.</p>
+      </div>
+
+      <div class="section-label">Who benefits</div>
+      <div class="beneficiary-grid">
+        <div class="beneficiary-card glass">🎓 Students</div>
+        <div class="beneficiary-card glass">🏃 Sports persons</div>
+        <div class="beneficiary-card glass">👷 Outdoor workers</div>
+        <div class="beneficiary-card glass">🌍 General public</div>
+      </div>
+    </section>
+
+    <!-- ===================== SAFETY VIEW ===================== -->
+    <section id="view-safety" class="view hidden">
+      <h2 class="view-title">🛡️ How to protect yourself</h2>
+      <p class="view-sub">Recommendations become more prominent as UV risk increases.</p>
+      <div id="safety-grid-full" class="safety-grid safety-grid-full"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar glass">
+    <button class="tab active" data-view="home" aria-label="Home">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="tab" data-view="assistant" aria-label="UV Assistant">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+      <span>Assistant</span>
+    </button>
+    <button class="tab" data-view="uvinfo" aria-label="UV Information">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <span>UV Info</span>
+    </button>
+    <button class="tab" data-view="ozone" aria-label="Ozone">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3c5 3.4 7.5 6.8 7.5 10.5a7.5 7.5 0 0 1-15 0C4.5 9.8 7 6.4 12 3z"/></svg>
+      <span>Ozone</span>
+    </button>
+    <button class="tab" data-view="safety" aria-label="Safety">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+      <span>Safety</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
